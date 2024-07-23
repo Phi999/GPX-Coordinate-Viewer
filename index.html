@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPX Coordinate Viewer</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f0f4f8;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            max-width: 600px;
+            width: 100%;
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #333;
+            text-align: center;
+        }
+        input[type="file"] {
+            display: block;
+            margin: 0 auto 20px;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #fafafa;
+        }
+        #output {
+            background-color: #fafafa;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            color: #333;
+            white-space: pre-wrap;
+        }
+        button {
+            display: block;
+            margin: 20px auto;
+            padding: 10px 20px;
+            font-size: 16px;
+            color: #ffffff;
+            background-color: #007bff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .note {
+            font-size: 14px;
+            color: #666;
+            margin-top: 10px;
+            text-align: center;
+        }
+        .note a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        .note a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>GPX Coordinate Viewer</h1>
+        <input type="file" id="fileInput" />
+        <pre id="output">Upload a GPX file to view coordinates here...</pre>
+        <button id="copyButton">Copy to Clipboard</button>
+        <div class="note">
+            <p>Note: Ensure your GPX file contains <code>&lt;wpt&gt;</code> elements with <code>lat</code> and <code>lon</code> attributes.</p>
+            <p>Created with ❤️ by <a href="https://github.com/your-repo" target="_blank">Chat gpt</a></p>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('fileInput').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const parser = new DOMParser();
+                    const xmlDoc = parser.parseFromString(e.target.result, "application/xml");
+
+                    // Check if the XML was parsed correctly
+                    const parserError = xmlDoc.querySelector('parsererror');
+                    if (parserError) {
+                        document.getElementById('output').textContent = 'Error parsing XML: ' + parserError.textContent;
+                        return;
+                    }
+
+                    // Extract coordinates
+                    const wptElements = xmlDoc.getElementsByTagName('wpt');
+                    if (wptElements.length === 0) {
+                        document.getElementById('output').textContent = 'No wpt elements found.';
+                        return;
+                    }
+
+                    let coords = [];
+                    for (let i = 0; i < wptElements.length; i++) {
+                        const lat = wptElements[i].getAttribute('lat');
+                        const lon = wptElements[i].getAttribute('lon');
+                        if (lat && lon) {
+                            coords.push([parseFloat(lat), parseFloat(lon)]);
+                        }
+                    }
+
+                    if (coords.length === 0) {
+                        document.getElementById('output').textContent = 'No valid coordinates found.';
+                        return;
+                    }
+
+                    displayCoords(coords);
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        function displayCoords(coords) {
+            let output = 'float latLongs[num_of_coordonates][2] = {\n';
+            for (let i = 0; i < coords.length; i++) {
+                output += `  {${coords[i][0].toFixed(6)}, ${coords[i][1].toFixed(6)}}`;
+                if (i < coords.length - 1) {
+                    output += ',\n';
+                }
+            }
+            output += '\n};';
+            document.getElementById('output').textContent = output;
+            document.getElementById('copyButton').style.display = 'block'; // Show the copy button when coordinates are displayed
+        }
+
+        document.getElementById('copyButton').addEventListener('click', function() {
+            const outputText = document.getElementById('output').textContent;
+            navigator.clipboard.writeText(outputText).then(function() {
+                alert('Coordinates copied to clipboard!');
+            }).catch(function(err) {
+                console.error('Failed to copy: ', err);
+            });
+        });
+    </script>
+</body>
+</html>
